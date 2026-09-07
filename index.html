@@ -250,7 +250,9 @@
   @media(max-width:520px){.tri{grid-template-columns:1fr}}
   .disclaimers{max-width:640px;margin:22px auto 0;display:flex;flex-direction:column;gap:8px}
   .disclaimers p{margin:0;font-size:12px;font-weight:300;line-height:1.5;color:var(--ink-faint);text-align:center}
-  .tri-card{margin:0;border:2px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg-raise);display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s}
+  .tri-card{position:relative;margin:0;border:2px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg-raise);display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s}
+  .tri-badge{position:absolute;top:10px;right:10px;z-index:2;display:inline-flex;align-items:center;gap:5px;background:var(--moss);color:#fff;font-family:Montserrat,sans-serif;font-weight:800;font-size:11px;letter-spacing:.02em;padding:6px 10px;border-radius:999px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.22)}
+  .tri-badge svg{width:13px;height:13px;display:block;flex:none}
   .tri-card.opt{cursor:pointer}
   .tri-card.opt:hover{border-color:var(--ink-faint)}
   .tri-card.opt[aria-pressed="true"]{border-color:var(--moss);box-shadow:0 0 0 1px var(--moss),var(--card-shadow)}
@@ -456,6 +458,7 @@
 
       <figure class="tri-card opt" data-opt="a" tabindex="0" role="button" aria-pressed="true">
         <img class="tri-img" id="imgOptA" alt="Sugestão mantendo os seus móveis">
+        <span class="tri-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>Pronto em 24h</span>
         <figcaption class="tri-cap">
           <span class="tri-tag moss">Sugerida por nós</span>
           <span class="tri-desc">Mantém todos os seus móveis, no estilo da sua foto, com upgrades de decoração.</span>
@@ -465,6 +468,7 @@
 
       <figure class="tri-card opt" data-opt="b" tabindex="0" role="button" aria-pressed="false">
         <img class="tri-img" id="imgOptB" alt="Reformulação completa">
+        <span class="tri-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>Pronto em 24h</span>
         <figcaption class="tri-cap">
           <span class="tri-tag moss">Reformulação completa</span>
           <span class="tri-desc" id="optSubB">Novo estilo, incluindo troca de móveis quando necessário.</span>
@@ -474,6 +478,7 @@
 
       <figure class="tri-card opt" data-opt="c" tabindex="0" role="button" aria-pressed="false" hidden>
         <img class="tri-img" id="imgOptC" alt="Reformulação em outro estilo">
+        <span class="tri-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>Pronto em 24h</span>
         <figcaption class="tri-cap">
           <span class="tri-tag moss">Outro estilo</span>
           <span class="tri-desc" id="optSubC">Reformulação em outro estilo.</span>
@@ -552,8 +557,7 @@ const CLASSIFY_URL = "https://qubitadvisors.app.n8n.cloud/webhook/flip-classify"
 const ORC_URL = "https://qubitadvisors.app.n8n.cloud/webhook/flip-orcamento";
 const WHATSAPP = "5511985151861"; // Verônica Arquiteta
 const ROOM_LABELS = { sala:"Sala", sala_tv:"Sala de TV", cozinha:"Cozinha", banheiro:"Banheiro", quarto:"Quarto", escritorio:"Escritório" };
-const ASSET_BASE = "https://thiagosilvasantos-beep.github.io/flipdecor-assets/";
-const styleImgUrl = (room,id)=>`${ASSET_BASE}estilos/${room}/${id}.jpg`;
+const styleImgUrl = (room,id)=>`estilos/${room}/${id}.jpg`;
 
 /* ====== ESTILOS ====== */
 const STYLES = [
@@ -866,25 +870,31 @@ async function composeWith(afterURL){
   c.drawImage(bi,0,0,wB,H); c.drawImage(ai,wB,0,wA,H);
   return t.toDataURL("image/jpeg",0.8);
 }
-/* móveis da opção B (reformulação) custam +50% */
-/* móveis +100% (2×); demais itens +50% (1,5×) */
+/* Preço por item (base): móveis 1,75× e demais itens 1,3× */
 function itemPrice(it){ return it.tipo==="movel" ? Math.round((+it.preco||0)*1.75) : Math.round((+it.preco||0)*1.3); }
-function optTotal(opt){ return (options[opt].items||[]).reduce((a,it)=>a+itemPrice(it),0); }
+/* A "Sugerida por nós" (A) mantém os móveis existentes → é a base, a mais barata.
+   As reformulações (B e C) trocam móveis, então ficam entre 1,8× e 1,9× da base. */
+function baseTotalA(){ return (options.a.items||[]).reduce((a,it)=>a+itemPrice(it),0); }
+function optTotal(opt){
+  if(opt==="a") return baseTotalA();
+  const f=options[opt].factor||1.85;
+  return Math.round(baseTotalA()*f/10)*10;
+}
 function setSelectedOption(opt){
   selectedOption=opt;
   document.querySelectorAll(".tri-card.opt").forEach(c=>c.setAttribute("aria-pressed", c.dataset.opt===opt?"true":"false"));
   updateSelected();
 }
+function optReady(opt){ return options[opt].loaded && (opt==="a" || options.a.loaded); }
 function updateSelected(){
-  const o=options[selectedOption];
-  $("bbTotal3").textContent = o.loaded ? brl(optTotal(selectedOption)) : "…";
+  $("bbTotal3").textContent = optReady(selectedOption) ? brl(optTotal(selectedOption)) : "…";
   updateWhats();
 }
 function renderOptions(){
   for(const opt of ["a","b","c"]){
     const totalEl=$("optTotal"+opt.toUpperCase()); if(!totalEl) continue;
     if(!options[opt].after){ totalEl.textContent="—"; continue; }
-    if(!options[opt].loaded){ totalEl.textContent="calculando…"; continue; }
+    if(!optReady(opt)){ totalEl.textContent="calculando…"; continue; }
     totalEl.textContent=brl(optTotal(opt));
   }
   updateSelected();
@@ -910,6 +920,7 @@ async function loadOrcamentos(opts){
       if(!items && attempt===0) await new Promise(r=>setTimeout(r,1200));
     }
     options[opt].items = items || FALLBACK_ITEMS[opt==="a"?"a":"b"];
+    if(opt!=="a" && !options[opt].factor) options[opt].factor = +(1.8 + Math.random()*0.1).toFixed(3);
     options[opt].loaded = true;
     renderOptions();
   }
@@ -970,9 +981,9 @@ $("btnQuartoTop").addEventListener("click",()=>setSample("quarto"));
 
 /* ====== SHOWCASE: 3 AMBIENTES EM LOOP (revelação + contador 12h) ====== */
 const ROOMS_DEMO=[
-  {label:"Sala de estar",  antes:ASSET_BASE+"demo/sala-antes.jpg",   depois:ASSET_BASE+"demo/sala-depois.jpg"},
-  {label:"Quarto",         antes:ASSET_BASE+"demo/quarto-antes.jpg", depois:ASSET_BASE+"demo/quarto-depois.jpg"},
-  {label:"Sala de jantar", antes:ASSET_BASE+"demo/jantar-antes.jpg", depois:ASSET_BASE+"demo/jantar-depois.jpg"},
+  {label:"Sala de estar",  antes:"demo/sala-antes.jpg",   depois:"demo/sala-depois.jpg"},
+  {label:"Quarto",         antes:"demo/quarto-antes.jpg", depois:"demo/quarto-depois.jpg"},
+  {label:"Sala de jantar", antes:"demo/jantar-antes.jpg", depois:"demo/jantar-depois.jpg"},
 ];
 (function(){
   const show=$("baShow"); if(!show) return;

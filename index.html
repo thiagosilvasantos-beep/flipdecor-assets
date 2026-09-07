@@ -164,9 +164,12 @@
   /* etapa 2: estilos */
   .photo-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg-raise);border:1px solid var(--line);
     border-radius:12px;padding:12px 14px;margin-bottom:22px}
-  .photo-strip .thumb{width:64px;height:48px;border-radius:8px;border:1px solid var(--line);object-fit:cover;background:var(--bg-sunk);flex:none}
-  .photo-strip canvas.thumb{width:64px;height:48px}
-  .photo-strip .ps-txt{font-size:13px;color:var(--ink-soft);flex:1;min-width:140px}
+  .photo-strip .thumb{width:96px;height:72px;border-radius:8px;border:1px solid var(--line);object-fit:cover;background:var(--bg-sunk);flex:none}
+  .photo-strip canvas.thumb{width:96px;height:72px}
+  .photo-strip .ps-info{display:flex;flex-direction:column;gap:1px;flex:1;min-width:150px}
+  .photo-strip .ps-eyebrow{font-family:Montserrat,sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .photo-strip .ps-room{font-family:Montserrat,sans-serif;font-weight:800;font-size:20px;line-height:1.15;color:var(--moss)}
+  .photo-strip .ps-note{font-size:12px;color:var(--ink-soft);margin-top:1px}
   .styles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:14px}
   @media(max-width:480px){.styles-grid{grid-template-columns:1fr}}
   .style-card{position:relative;background:var(--bg-raise);border:2px solid var(--line);border-radius:14px;overflow:hidden;
@@ -431,7 +434,11 @@
     <div class="photo-strip">
       <img class="thumb" id="photoThumb" alt="Seu ambiente" hidden>
       <canvas class="thumb" id="sampleThumb" width="128" height="96" hidden></canvas>
-      <span class="ps-txt" id="photoStatus">Ambiente de exemplo “Sala de estar”.</span>
+      <div class="ps-info">
+        <span class="ps-eyebrow" id="photoEyebrow">Ambiente de exemplo</span>
+        <span class="ps-room" id="photoRoom">Sala de estar</span>
+        <span class="ps-note" id="photoStatus"></span>
+      </div>
       <button class="btn-quiet" id="btnTrocar" type="button">Trocar foto</button>
     </div>
     <div class="styles-grid" id="stylesGrid"></div>
@@ -460,16 +467,16 @@
       <figure class="tri-card opt" data-opt="a" tabindex="0" role="button" aria-pressed="true">
         <img class="tri-img" id="imgOptA" alt="Sugestão mantendo os seus móveis">
         <figcaption class="tri-cap">
-          <span class="tri-tag moss">Sugerida por nós</span>
+          <span class="tri-tag moss">Usando tudo que você já tem</span>
           <span class="tri-desc">Mantém todos os seus móveis, no estilo da sua foto, com upgrades de decoração.</span>
           <span class="tri-total-row"><span class="tri-total" id="optTotalA">…</span><span class="tri-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>24h</span></span>
         </figcaption>
       </figure>
 
       <figure class="tri-card opt" data-opt="b" tabindex="0" role="button" aria-pressed="false">
-        <img class="tri-img" id="imgOptB" alt="Reformulação completa">
+        <img class="tri-img" id="imgOptB" alt="Usando o estilo que você escolheu">
         <figcaption class="tri-cap">
-          <span class="tri-tag moss">Reformulação completa</span>
+          <span class="tri-tag moss">Usando o estilo que você escolheu (troca de móveis)</span>
           <span class="tri-desc" id="optSubB">Novo estilo, incluindo troca de móveis quando necessário.</span>
           <span class="tri-total-row"><span class="tri-total" id="optTotalB">…</span><span class="tri-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg>24h</span></span>
         </figcaption>
@@ -784,9 +791,9 @@ async function classifyAndGo(){
   }
   catch(e){ detectedRoom="sala"; }
   hideOverlay();
-  $("photoStatus").textContent = userPhoto
-    ? `Ambiente identificado: ${ROOM_LABELS[detectedRoom]}. Estes são estilos de ${ROOM_LABELS[detectedRoom].toLowerCase()}.`
-    : `Ambiente de exemplo: ${ROOM_LABELS[detectedRoom]}.`;
+  $("photoEyebrow").textContent = userPhoto ? "Ambiente identificado" : "Ambiente de exemplo";
+  $("photoRoom").textContent = ROOM_LABELS[detectedRoom];
+  $("photoStatus").textContent = userPhoto ? `Estes são estilos de ${ROOM_LABELS[detectedRoom].toLowerCase()}.` : "";
   chosenStyle=null; buildStyles(); goTo(2);
 }
 const COMMON_RULES=" ABSOLUTE STRUCTURAL RULE — this applies to EVERY version with NO exceptions and is the most important instruction: this is a DECORATION-ONLY edit, you must NOT change the building structure / masonry (alvenaria) of the house in any way. Keep every WALL, every WINDOW and every DOOR exactly as in the original photo — the same number, the same size, the same shape and the same position. It is STRICTLY FORBIDDEN to add, remove, move, relocate, resize, reshape, open, close, merge, split or replace any window, door or wall. Never turn a wall into a window or door, and never turn a window or door into a wall. Every window must keep the same frame, the same panes/divisions and the same outside view; every door must keep the same frame and position. Do not create any new opening in the walls. Also never change the floor — keep the existing flooring exactly as in the original photo. Preserve the room's architecture, walls, ceiling, proportions and the exact same camera angle and framing. Only furniture, finishes/surfaces and decoration may change — the structure stays 100% identical to the original. Photorealistic, professional interior photography.";
@@ -868,11 +875,28 @@ async function composeWith(afterURL){
   c.drawImage(bi,0,0,wB,H); c.drawImage(ai,wB,0,wA,H);
   return t.toDataURL("image/jpeg",0.8);
 }
-/* Preço por item (base): móveis 1,75× e demais itens 1,3× */
-function itemPrice(it){ return it.tipo==="movel" ? Math.round((+it.preco||0)*1.75) : Math.round((+it.preco||0)*1.3); }
-/* A "Sugerida por nós" (A) mantém os móveis existentes → é a base, a mais barata.
-   As reformulações (B e C) trocam móveis, então ficam entre 1,8× e 1,9× da base. */
-function baseTotalA(){ return (options.a.items||[]).reduce((a,it)=>a+itemPrice(it),0); }
+/* ====== PREÇO ANCORADO (2026-09-07) ======
+   O anúncio e o vídeo fecham em R$ 9.800 para um cômodo de ~15 m². A opção A
+   ("Sugerida por nós", que mantém os móveis) passa a SER esse pacote fechado,
+   ajustado pela área — antes ela era somada a partir dos itens que a IA devolvia
+   e caía em R$ 13.275, contradizendo o próprio anúncio.
+   As reformulações (B e C) continuam entre 1,8× e 1,9× dessa base. */
+const PACOTE_A = [
+  { nome:"Papel de parede", preco:2400 },
+  { nome:"Painel ripado",   preco:3900 },
+  { nome:"Iluminação",      preco:1900 },
+  { nome:"Decoração (quadros, plantas e objetos)", preco:1600 }
+];
+const ANCORA_A    = PACOTE_A.reduce((a,it)=>a+it.preco,0);  /* 9800 */
+const ANCORA_AREA = 15;  /* m² de referência — o quarto médio do anúncio */
+/* A área pesa, mas menos que proporcional: boa parte do pacote é mão de obra e
+   item fixo. Travada entre 0,80× e 1,35× para o preço fechado continuar fechado. */
+function areaFactor(){
+  const area = Math.max(0, +$("mArea").value || 0) || ANCORA_AREA;
+  const f = 0.55 + 0.45 * (area / ANCORA_AREA);
+  return Math.min(1.35, Math.max(0.80, f));
+}
+function baseTotalA(){ return Math.round(ANCORA_A * areaFactor() / 10) * 10; }
 function optTotal(opt){
   if(opt==="a") return baseTotalA();
   const f=options[opt].factor||1.85;
@@ -883,7 +907,8 @@ function setSelectedOption(opt){
   document.querySelectorAll(".tri-card.opt").forEach(c=>c.setAttribute("aria-pressed", c.dataset.opt===opt?"true":"false"));
   updateSelected();
 }
-function optReady(opt){ return options[opt].loaded && (opt==="a" || options.a.loaded); }
+/* O preço não depende mais do retorno da IA, só da imagem já escolhida. */
+function optReady(opt){ return !!options[opt].after; }
 function updateSelected(){
   $("bbTotal3").textContent = optReady(selectedOption) ? brl(optTotal(selectedOption)) : "…";
   updateWhats();
@@ -927,8 +952,8 @@ async function loadOrcamentos(opts){
 function updateWhats(){
   const opt=selectedOption, total=optTotal(opt);
   let optName;
-  if(opt==="a") optName="Sugerida por nós (mantendo os móveis)";
-  else { const st=styleById(opt==="b"?styleB:styleC); optName="Reformulação completa — estilo "+(st?st.nome:""); }
+  if(opt==="a") optName="Usando tudo que você já tem (mantém os móveis)";
+  else { const st=styleById(opt==="b"?styleB:styleC); optName="Usando o estilo que você escolheu (troca de móveis) — "+(st?st.nome:""); }
   let base="Olá! Vim pelo simulador da FLIP Decor.\n\n";
   base+=`Opção: ${optName}\n`;
   base+=`Ambiente: ${ROOM_LABELS[detectedRoom]} (~${Math.round(+$("mArea").value||0)} m²)\n`;
@@ -971,7 +996,7 @@ function setSample(k){
   sample=k; userPhoto=null; if(userPhotoURL){URL.revokeObjectURL(userPhotoURL);userPhotoURL=null;}
   detectedRoom = k==="quarto" ? "quarto" : "sala";
   $("mArea").value = k==="quarto" ? 12 : 18; $("mAlt").value = 2.7; $("mJan").value = k==="quarto" ? 1.5 : 2.4;
-  $("photoStatus").textContent=`Ambiente de exemplo: ${ROOM_LABELS[detectedRoom]}.`;
+  $("photoEyebrow").textContent="Ambiente de exemplo"; $("photoRoom").textContent=ROOM_LABELS[detectedRoom]; $("photoStatus").textContent="";
   $("fileInput").value=""; chosenStyle=null; options={a:{after:null,items:[],loaded:false},b:{after:null,items:[],loaded:false},c:{after:null,items:[],loaded:false}}; styleC=null; hasC=false; buildStyles(); goTo(2);
 }
 $("btnSalaTop").addEventListener("click",()=>setSample("sala"));
